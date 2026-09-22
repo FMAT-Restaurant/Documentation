@@ -1,0 +1,927 @@
+asyncapi: 3.1.0
+id: urn:fmat:restaurant:operational-events
+info:
+  title: FMAT Restaurant - Eventos operacionales
+  version: 0.1.0
+  description: >-
+    Contrato compartido propuesto para los mensajes operacionales definidos en
+    output/diagrams/domain-events.md. Cada mensaje usa el modo estructurado de
+    CloudEvents 1.0 y coloca el payload de negocio dentro de data. Los
+    addresses, nombres de tipo CloudEvents y formas exactas de los datos son
+    propuestas para discusión; el documento de eventos no determina todavía el
+    broker, protocolo, tópicos ni el contrato final de cada payload.
+    Los eventos internos OrderCreated y OrderUpdated quedan fuera porque el
+    documento fuente indica que no necesitan publicarse si no tienen
+    consumidores externos.
+defaultContentType: application/cloudevents+json
+
+channels:
+  inventoryReservationRequested:
+    address: fmat/orders/inventory-reservation-requested/v1
+    description: >-
+      [Propuesta] Canal para solicitar a Inventory la reserva inicial de una
+      orden.
+    messages:
+      inventoryReservationRequested:
+        $ref: '#/components/messages/InventoryReservationRequested'
+
+  inventoryReservationConfirmed:
+    address: fmat/inventory/inventory-reservation-confirmed/v1
+    description: >-
+      [Propuesta] Canal por el que Inventory confirma una reserva inicial.
+    messages:
+      inventoryReservationConfirmed:
+        $ref: '#/components/messages/InventoryReservationConfirmed'
+
+  inventoryReservationRejected:
+    address: fmat/inventory/inventory-reservation-rejected/v1
+    description: >-
+      [Propuesta] Canal por el que Inventory rechaza una reserva o un ajuste.
+    messages:
+      inventoryReservationRejected:
+        $ref: '#/components/messages/InventoryReservationRejected'
+
+  inventoryReservationAdjustmentRequested:
+    address: fmat/orders/inventory-reservation-adjustment-requested/v1
+    description: >-
+      [Propuesta] Canal para solicitar a Inventory el ajuste de una reserva
+      debido a cambios en una orden.
+    messages:
+      inventoryReservationAdjustmentRequested:
+        $ref: '#/components/messages/InventoryReservationAdjustmentRequested'
+
+  inventoryReservationAdjusted:
+    address: fmat/inventory/inventory-reservation-adjusted/v1
+    description: >-
+      [Propuesta] Canal por el que Inventory confirma un ajuste de reserva.
+    messages:
+      inventoryReservationAdjusted:
+        $ref: '#/components/messages/InventoryReservationAdjusted'
+
+  preparationStarted:
+    address: fmat/orders/preparation-started/v1
+    description: >-
+      [Propuesta] Canal por el que Orders & Kitchen informa a Inventory que la
+      preparación comenzó y la reserva puede consumirse.
+    messages:
+      preparationStarted:
+        $ref: '#/components/messages/PreparationStarted'
+
+  orderCancelled:
+    address: fmat/orders/order-cancelled/v1
+    description: >-
+      [Propuesta] Canal por el que Orders & Kitchen informa a Inventory de la
+      cancelación de una orden.
+    messages:
+      orderCancelled:
+        $ref: '#/components/messages/OrderCancelled'
+
+  orderReady:
+    address: fmat/orders/order-ready/v1
+    description: >-
+      [Propuesta] Canal por el que Orders & Kitchen informa a Sala que una
+      orden está lista para servirse.
+    messages:
+      orderReady:
+        $ref: '#/components/messages/OrderReady'
+
+  orderServed:
+    address: fmat/sala/order-served/v1
+    description: >-
+      [Propuesta] Canal por el que Sala informa a Billing & Payments que una
+      orden fue servida.
+    messages:
+      orderServed:
+        $ref: '#/components/messages/OrderServed'
+
+  accountClosed:
+    address: fmat/billing-payments/account-closed/v1
+    description: >-
+      [Propuesta] Canal por el que Billing & Payments informa a Sala que una
+      cuenta quedó completamente saldada y cerrada.
+    messages:
+      accountClosed:
+        $ref: '#/components/messages/AccountClosed'
+
+  paymentRefunded:
+    address: fmat/billing-payments/payment-refunded/v1
+    description: >-
+      [Propuesta] Canal por el que Billing & Payments informa a Sala que un
+      pago fue reembolsado.
+    messages:
+      paymentRefunded:
+        $ref: '#/components/messages/PaymentRefunded'
+
+operations:
+  ordersKitchenSendsInventoryReservationRequested:
+    action: send
+    channel:
+      $ref: '#/channels/inventoryReservationRequested'
+    summary: Orders & Kitchen solicita la reserva inicial
+    description: Orders & Kitchen solicita a Inventory reservar los recursos de una orden.
+    messages:
+      - $ref: '#/channels/inventoryReservationRequested/messages/inventoryReservationRequested'
+
+  inventoryReceivesInventoryReservationRequested:
+    action: receive
+    channel:
+      $ref: '#/channels/inventoryReservationRequested'
+    summary: Inventory recibe la solicitud de reserva inicial
+    description: Inventory valida y procesa la solicitud de reserva inicial.
+    messages:
+      - $ref: '#/channels/inventoryReservationRequested/messages/inventoryReservationRequested'
+
+  inventorySendsInventoryReservationConfirmed:
+    action: send
+    channel:
+      $ref: '#/channels/inventoryReservationConfirmed'
+    summary: Inventory confirma la reserva inicial
+    description: Inventory informa que la reserva inicial fue realizada correctamente.
+    messages:
+      - $ref: '#/channels/inventoryReservationConfirmed/messages/inventoryReservationConfirmed'
+
+  ordersKitchenReceivesInventoryReservationConfirmed:
+    action: receive
+    channel:
+      $ref: '#/channels/inventoryReservationConfirmed'
+    summary: Orders & Kitchen recibe la confirmación de reserva
+    description: Orders & Kitchen puede confirmar la orden después de recibir esta respuesta explícita.
+    messages:
+      - $ref: '#/channels/inventoryReservationConfirmed/messages/inventoryReservationConfirmed'
+
+  inventorySendsInventoryReservationRejected:
+    action: send
+    channel:
+      $ref: '#/channels/inventoryReservationRejected'
+    summary: Inventory rechaza una reserva o ajuste
+    description: Inventory informa que no pudo realizar una reserva o un ajuste solicitado.
+    messages:
+      - $ref: '#/channels/inventoryReservationRejected/messages/inventoryReservationRejected'
+
+  ordersKitchenReceivesInventoryReservationRejected:
+    action: receive
+    channel:
+      $ref: '#/channels/inventoryReservationRejected'
+    summary: Orders & Kitchen recibe el rechazo de Inventory
+    description: Orders & Kitchen descarta el cambio pendiente o cancela la orden según el flujo aplicable.
+    messages:
+      - $ref: '#/channels/inventoryReservationRejected/messages/inventoryReservationRejected'
+
+  ordersKitchenSendsInventoryReservationAdjustmentRequested:
+    action: send
+    channel:
+      $ref: '#/channels/inventoryReservationAdjustmentRequested'
+    summary: Orders & Kitchen solicita ajustar una reserva
+    description: Orders & Kitchen solicita ajustar la reserva por un cambio de orden que afecta inventario.
+    messages:
+      - $ref: '#/channels/inventoryReservationAdjustmentRequested/messages/inventoryReservationAdjustmentRequested'
+
+  inventoryReceivesInventoryReservationAdjustmentRequested:
+    action: receive
+    channel:
+      $ref: '#/channels/inventoryReservationAdjustmentRequested'
+    summary: Inventory recibe el ajuste de reserva
+    description: Inventory valida y procesa el ajuste solicitado para la versión propuesta de la orden.
+    messages:
+      - $ref: '#/channels/inventoryReservationAdjustmentRequested/messages/inventoryReservationAdjustmentRequested'
+
+  inventorySendsInventoryReservationAdjusted:
+    action: send
+    channel:
+      $ref: '#/channels/inventoryReservationAdjusted'
+    summary: Inventory confirma el ajuste de reserva
+    description: Inventory informa que el ajuste solicitado fue realizado correctamente.
+    messages:
+      - $ref: '#/channels/inventoryReservationAdjusted/messages/inventoryReservationAdjusted'
+
+  ordersKitchenReceivesInventoryReservationAdjusted:
+    action: receive
+    channel:
+      $ref: '#/channels/inventoryReservationAdjusted'
+    summary: Orders & Kitchen recibe el ajuste confirmado
+    description: Orders & Kitchen vuelve definitivo el cambio pendiente y avanza la versión de la orden.
+    messages:
+      - $ref: '#/channels/inventoryReservationAdjusted/messages/inventoryReservationAdjusted'
+
+  ordersKitchenSendsPreparationStarted:
+    action: send
+    channel:
+      $ref: '#/channels/preparationStarted'
+    summary: Orders & Kitchen informa el inicio de preparación
+    description: Orders & Kitchen informa a Inventory que la reserva correspondiente puede consumirse.
+    messages:
+      - $ref: '#/channels/preparationStarted/messages/preparationStarted'
+
+  inventoryReceivesPreparationStarted:
+    action: receive
+    channel:
+      $ref: '#/channels/preparationStarted'
+    summary: Inventory recibe el inicio de preparación
+    description: Inventory transforma la reserva correspondiente en consumo.
+    messages:
+      - $ref: '#/channels/preparationStarted/messages/preparationStarted'
+
+  ordersKitchenSendsOrderCancelled:
+    action: send
+    channel:
+      $ref: '#/channels/orderCancelled'
+    summary: Orders & Kitchen informa la cancelación de una orden
+    description: Orders & Kitchen informa a Inventory que debe liberar reservas que aún no fueron consumidas.
+    messages:
+      - $ref: '#/channels/orderCancelled/messages/orderCancelled'
+
+  inventoryReceivesOrderCancelled:
+    action: receive
+    channel:
+      $ref: '#/channels/orderCancelled'
+    summary: Inventory recibe la cancelación de una orden
+    description: Inventory libera únicamente las reservas que todavía no fueron consumidas.
+    messages:
+      - $ref: '#/channels/orderCancelled/messages/orderCancelled'
+
+  ordersKitchenSendsOrderReady:
+    action: send
+    channel:
+      $ref: '#/channels/orderReady'
+    summary: Orders & Kitchen informa que la orden está lista
+    description: Orders & Kitchen informa a Sala que la orden está lista para ser servida.
+    messages:
+      - $ref: '#/channels/orderReady/messages/orderReady'
+
+  salaReceivesOrderReady:
+    action: receive
+    channel:
+      $ref: '#/channels/orderReady'
+    summary: Sala recibe una orden lista
+    description: Sala marca la orden como lista para servir.
+    messages:
+      - $ref: '#/channels/orderReady/messages/orderReady'
+
+  salaSendsOrderServed:
+    action: send
+    channel:
+      $ref: '#/channels/orderServed'
+    summary: Sala informa que la orden fue servida
+    description: Sala informa a Billing & Payments que la orden fue servida.
+    messages:
+      - $ref: '#/channels/orderServed/messages/orderServed'
+
+  billingPaymentsReceivesOrderServed:
+    action: receive
+    channel:
+      $ref: '#/channels/orderServed'
+    summary: Billing & Payments recibe la orden servida
+    description: Billing & Payments crea o actualiza la cuenta asociada.
+    messages:
+      - $ref: '#/channels/orderServed/messages/orderServed'
+
+  billingPaymentsSendsAccountClosed:
+    action: send
+    channel:
+      $ref: '#/channels/accountClosed'
+    summary: Billing & Payments informa el cierre de cuenta
+    description: Billing & Payments informa a Sala que el saldo llegó a cero y la cuenta fue cerrada.
+    messages:
+      - $ref: '#/channels/accountClosed/messages/accountClosed'
+
+  salaReceivesAccountClosed:
+    action: receive
+    channel:
+      $ref: '#/channels/accountClosed'
+    summary: Sala recibe el cierre de cuenta
+    description: Sala actualiza el estado correspondiente y puede liberar la mesa.
+    messages:
+      - $ref: '#/channels/accountClosed/messages/accountClosed'
+
+  billingPaymentsSendsPaymentRefunded:
+    action: send
+    channel:
+      $ref: '#/channels/paymentRefunded'
+    summary: Billing & Payments informa un reembolso
+    description: Billing & Payments informa a Sala que un pago fue reembolsado.
+    messages:
+      - $ref: '#/channels/paymentRefunded/messages/paymentRefunded'
+
+  salaReceivesPaymentRefunded:
+    action: receive
+    channel:
+      $ref: '#/channels/paymentRefunded'
+    summary: Sala recibe un reembolso
+    description: Sala actualiza el estado visible si aplica, sin reabrir automáticamente la mesa ni cambiar la orden.
+    messages:
+      - $ref: '#/channels/paymentRefunded/messages/paymentRefunded'
+
+components:
+  messages:
+    InventoryReservationRequested:
+      name: InventoryReservationRequested
+      title: Solicitud de reserva de inventario
+      summary: Orders & Kitchen solicita la reserva inicial necesaria para una orden.
+      tags:
+        - name: command
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/CloudEventInventoryReservationRequested'
+
+    InventoryReservationConfirmed:
+      name: InventoryReservationConfirmed
+      title: Reserva de inventario confirmada
+      summary: Inventory confirma que la reserva inicial fue realizada correctamente.
+      tags:
+        - name: event
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/CloudEventInventoryReservationConfirmed'
+
+    InventoryReservationRejected:
+      name: InventoryReservationRejected
+      title: Reserva de inventario rechazada
+      summary: Inventory informa que una reserva o ajuste no pudo realizarse.
+      tags:
+        - name: event
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/CloudEventInventoryReservationRejected'
+
+    InventoryReservationAdjustmentRequested:
+      name: InventoryReservationAdjustmentRequested
+      title: Solicitud de ajuste de reserva de inventario
+      summary: Orders & Kitchen solicita el ajuste de una reserva debido a cambios en una orden.
+      tags:
+        - name: command
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/CloudEventInventoryReservationAdjustmentRequested'
+
+    InventoryReservationAdjusted:
+      name: InventoryReservationAdjusted
+      title: Ajuste de reserva de inventario realizado
+      summary: Inventory informa que el ajuste solicitado fue realizado correctamente.
+      tags:
+        - name: event
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/CloudEventInventoryReservationAdjusted'
+
+    PreparationStarted:
+      name: PreparationStarted
+      title: Preparación iniciada
+      summary: Orders & Kitchen informa que comenzó la preparación de una orden.
+      tags:
+        - name: event
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/CloudEventPreparationStarted'
+
+    OrderCancelled:
+      name: OrderCancelled
+      title: Orden cancelada
+      summary: Orders & Kitchen informa que una orden fue cancelada.
+      tags:
+        - name: event
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/CloudEventOrderCancelled'
+
+    OrderReady:
+      name: OrderReady
+      title: Orden lista
+      summary: Orders & Kitchen informa que una orden está lista para servirse.
+      tags:
+        - name: event
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/CloudEventOrderReady'
+
+    OrderServed:
+      name: OrderServed
+      title: Orden servida
+      summary: Sala informa que una orden fue servida.
+      tags:
+        - name: event
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/CloudEventOrderServed'
+
+    AccountClosed:
+      name: AccountClosed
+      title: Cuenta cerrada
+      summary: Billing & Payments informa que una cuenta quedó completamente saldada y cerrada.
+      tags:
+        - name: event
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/CloudEventAccountClosed'
+
+    PaymentRefunded:
+      name: PaymentRefunded
+      title: Pago reembolsado
+      summary: Billing & Payments informa que un pago fue reembolsado.
+      tags:
+        - name: event
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/CloudEventPaymentRefunded'
+
+  schemas:
+    CloudEventBase:
+      type: object
+      description: >-
+        CloudEvent 1.0 en modo estructurado. Se permiten atributos de extensión
+        para que el contrato pueda incorporar correlación o trazabilidad sin
+        romper el sobre estándar.
+      required:
+        - specversion
+        - id
+        - source
+        - type
+        - subject
+        - time
+        - datacontenttype
+        - data
+      properties:
+        specversion:
+          type: string
+          const: '1.0'
+          description: Versión de la especificación CloudEvents.
+        id:
+          type: string
+          format: uuid
+          description: Identificador único del mensaje.
+        source:
+          type: string
+          format: uri-reference
+          description: Contexto o servicio que produjo el mensaje.
+        type:
+          type: string
+          description: Tipo del mensaje dentro del dominio FMAT Restaurant.
+        subject:
+          type: string
+          minLength: 1
+          description: Recurso al que se refiere el mensaje.
+        time:
+          type: string
+          format: date-time
+          description: Momento en que se produjo el mensaje.
+        datacontenttype:
+          type: string
+          const: application/json
+          description: Tipo MIME del objeto contenido en data.
+        data:
+          type: object
+          description: Payload de negocio definido por el mensaje concreto.
+      additionalProperties: true
+
+    OrderReference:
+      type: object
+      description: Referencia de orden y versión contra la que se debe aplicar el mensaje.
+      required:
+        - orderId
+        - orderVersion
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: Identificador de la orden.
+        orderVersion:
+          type: integer
+          minimum: 1
+          description: Versión de la orden a la que aplica el mensaje.
+
+    InventoryRequirement:
+      type: object
+      description: >-
+        [Propuesta] Requerimiento físico que Orders & Kitchen deriva de los
+        artículos seleccionados antes de solicitar la reserva.
+      required:
+        - inventoryItemId
+        - quantity
+      properties:
+        inventoryItemId:
+          type: string
+          minLength: 1
+          description: Identificador del recurso físico en Inventory.
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          description: Cantidad requerida del recurso.
+        unit:
+          type: string
+          minLength: 1
+          description: Unidad de medida del recurso.
+      additionalProperties: false
+
+    InventoryReservationLine:
+      type: object
+      description: Línea de requerimientos de inventario asociada a una orden.
+      required:
+        - lineId
+        - quantity
+        - requirements
+      properties:
+        lineId:
+          type: string
+          minLength: 1
+          description: Identificador de la línea de orden.
+        quantity:
+          type: integer
+          minimum: 1
+          description: Cantidad de unidades solicitadas para la línea.
+        requirements:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/InventoryRequirement'
+      additionalProperties: false
+
+    InventoryReservationRequestedData:
+      allOf:
+        - $ref: '#/components/schemas/OrderReference'
+        - type: object
+          description: Solicitud de reserva inicial de recursos para una orden.
+          required:
+            - correlationId
+            - requestedAt
+            - lines
+          properties:
+            correlationId:
+              type: string
+              format: uuid
+              description: Identificador para correlacionar el flujo de reserva.
+            requestedAt:
+              type: string
+              format: date-time
+              description: Momento en que Orders & Kitchen solicitó la reserva.
+            lines:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/InventoryReservationLine'
+
+    InventoryReservationConfirmedData:
+      allOf:
+        - $ref: '#/components/schemas/OrderReference'
+        - type: object
+          description: Confirmación de la reserva inicial.
+          required:
+            - reservationId
+            - confirmedAt
+          properties:
+            reservationId:
+              type: string
+              format: uuid
+              description: Identificador de la reserva creada en Inventory.
+            confirmedAt:
+              type: string
+              format: date-time
+              description: Momento en que Inventory confirmó la reserva.
+
+    InventoryReservationRejectedData:
+      allOf:
+        - $ref: '#/components/schemas/OrderReference'
+        - type: object
+          description: Rechazo de una reserva inicial o de un ajuste.
+          required:
+            - rejectedAt
+            - reasonCode
+            - reason
+          properties:
+            rejectedAt:
+              type: string
+              format: date-time
+              description: Momento en que Inventory rechazó la solicitud.
+            reasonCode:
+              type: string
+              minLength: 1
+              description: Código estable para clasificar la causa del rechazo.
+            reason:
+              type: string
+              minLength: 1
+              description: Explicación legible del rechazo.
+            proposedOrderVersion:
+              type: integer
+              minimum: 1
+              description: Versión propuesta que fue rechazada cuando el mensaje corresponde a un ajuste.
+
+    InventoryReservationAdjustmentRequestedData:
+      allOf:
+        - $ref: '#/components/schemas/OrderReference'
+        - type: object
+          description: >-
+            Solicitud de ajuste. La representación exacta del delta de recursos
+            sigue abierta; esta propuesta envía el conjunto de requerimientos
+            resultante para la versión propuesta.
+          required:
+            - correlationId
+            - proposedOrderVersion
+            - requestedAt
+            - lines
+          properties:
+            correlationId:
+              type: string
+              format: uuid
+              description: Identificador para correlacionar el ajuste.
+            proposedOrderVersion:
+              type: integer
+              minimum: 1
+              description: Versión candidata que Orders & Kitchen espera confirmar.
+            requestedAt:
+              type: string
+              format: date-time
+              description: Momento en que se solicitó el ajuste.
+            lines:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/InventoryReservationLine'
+
+    InventoryReservationAdjustedData:
+      allOf:
+        - $ref: '#/components/schemas/OrderReference'
+        - type: object
+          description: Confirmación de un ajuste de reserva.
+          required:
+            - reservationId
+            - proposedOrderVersion
+            - adjustedAt
+          properties:
+            reservationId:
+              type: string
+              format: uuid
+              description: Identificador de la reserva ajustada.
+            proposedOrderVersion:
+              type: integer
+              minimum: 1
+              description: Versión propuesta de la orden cuyo ajuste fue confirmado.
+            adjustedAt:
+              type: string
+              format: date-time
+              description: Momento en que Inventory confirmó el ajuste.
+
+    PreparationStartedData:
+      allOf:
+        - $ref: '#/components/schemas/OrderReference'
+        - type: object
+          description: Notificación de que comenzó la preparación de la orden.
+          required:
+            - startedAt
+          properties:
+            startedAt:
+              type: string
+              format: date-time
+              description: Momento en que comenzó la preparación.
+            reservationId:
+              type: string
+              format: uuid
+              description: Identificador de la reserva que puede transformarse en consumo.
+
+    OrderCancelledData:
+      allOf:
+        - $ref: '#/components/schemas/OrderReference'
+        - type: object
+          description: Notificación de cancelación de una orden.
+          required:
+            - cancelledAt
+            - reasonCode
+            - reason
+          properties:
+            cancelledAt:
+              type: string
+              format: date-time
+              description: Momento en que Orders & Kitchen canceló la orden.
+            reasonCode:
+              type: string
+              minLength: 1
+              description: Código estable para clasificar la cancelación.
+            reason:
+              type: string
+              minLength: 1
+              description: Explicación legible de la cancelación.
+
+    OrderReadyData:
+      allOf:
+        - $ref: '#/components/schemas/OrderReference'
+        - type: object
+          description: Notificación de que la orden está lista para servirse.
+          required:
+            - readyAt
+          properties:
+            readyAt:
+              type: string
+              format: date-time
+              description: Momento en que la preparación terminó.
+
+    OrderServedData:
+      allOf:
+        - $ref: '#/components/schemas/OrderReference'
+        - type: object
+          description: Notificación de que la orden fue servida.
+          required:
+            - servedAt
+          properties:
+            servedAt:
+              type: string
+              format: date-time
+              description: Momento en que Sala confirmó que la orden fue servida.
+
+    AccountClosedData:
+      type: object
+      description: >-
+        [Propuesta] Notificación de que una cuenta llegó a saldo cero. El
+        documento de eventos no fija todavía si una cuenta puede contener una o
+        varias órdenes ni el identificador usado para relacionarla con una mesa.
+      required:
+        - accountId
+        - closedAt
+      properties:
+        accountId:
+          type: string
+          format: uuid
+          description: Identificador de la cuenta cerrada.
+        closedAt:
+          type: string
+          format: date-time
+          description: Momento en que Billing & Payments cerró la cuenta.
+        orderIds:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            format: uuid
+          description: Órdenes incluidas en la cuenta, si aplica al modelo final.
+      additionalProperties: false
+
+    Money:
+      type: object
+      description: Importe propuesto para el registro del reembolso.
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          type: number
+          minimum: 0
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          description: Código ISO 4217 de tres letras.
+      additionalProperties: false
+
+    PaymentRefundedData:
+      type: object
+      description: >-
+        [Propuesta] Notificación de que un pago fue reembolsado. No representa
+        una orden reembolsada ni implica reabrir automáticamente una mesa.
+      required:
+        - paymentId
+        - accountId
+        - refundedAt
+        - amount
+      properties:
+        paymentId:
+          type: string
+          format: uuid
+          description: Identificador del pago reembolsado.
+        accountId:
+          type: string
+          format: uuid
+          description: Cuenta a la que pertenecía el pago.
+        refundedAt:
+          type: string
+          format: date-time
+          description: Momento en que el proveedor confirmó el reembolso.
+        amount:
+          $ref: '#/components/schemas/Money'
+      additionalProperties: false
+
+    CloudEventInventoryReservationRequested:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              const: com.fmat.orders.inventory-reservation-requested.v1
+            source:
+              const: urn:fmat:service:orders-kitchen
+            data:
+              $ref: '#/components/schemas/InventoryReservationRequestedData'
+
+    CloudEventInventoryReservationConfirmed:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              const: com.fmat.inventory.inventory-reservation-confirmed.v1
+            source:
+              const: urn:fmat:service:inventory
+            data:
+              $ref: '#/components/schemas/InventoryReservationConfirmedData'
+
+    CloudEventInventoryReservationRejected:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              const: com.fmat.inventory.inventory-reservation-rejected.v1
+            source:
+              const: urn:fmat:service:inventory
+            data:
+              $ref: '#/components/schemas/InventoryReservationRejectedData'
+
+    CloudEventInventoryReservationAdjustmentRequested:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              const: com.fmat.orders.inventory-reservation-adjustment-requested.v1
+            source:
+              const: urn:fmat:service:orders-kitchen
+            data:
+              $ref: '#/components/schemas/InventoryReservationAdjustmentRequestedData'
+
+    CloudEventInventoryReservationAdjusted:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              const: com.fmat.inventory.inventory-reservation-adjusted.v1
+            source:
+              const: urn:fmat:service:inventory
+            data:
+              $ref: '#/components/schemas/InventoryReservationAdjustedData'
+
+    CloudEventPreparationStarted:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              const: com.fmat.orders.preparation-started.v1
+            source:
+              const: urn:fmat:service:orders-kitchen
+            data:
+              $ref: '#/components/schemas/PreparationStartedData'
+
+    CloudEventOrderCancelled:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              const: com.fmat.orders.order-cancelled.v1
+            source:
+              const: urn:fmat:service:orders-kitchen
+            data:
+              $ref: '#/components/schemas/OrderCancelledData'
+
+    CloudEventOrderReady:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              const: com.fmat.orders.order-ready.v1
+            source:
+              const: urn:fmat:service:orders-kitchen
+            data:
+              $ref: '#/components/schemas/OrderReadyData'
+
+    CloudEventOrderServed:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              const: com.fmat.sala.order-served.v1
+            source:
+              const: urn:fmat:service:sala
+            data:
+              $ref: '#/components/schemas/OrderServedData'
+
+    CloudEventAccountClosed:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              const: com.fmat.billing-payments.account-closed.v1
+            source:
+              const: urn:fmat:service:billing-payments
+            data:
+              $ref: '#/components/schemas/AccountClosedData'
+
+    CloudEventPaymentRefunded:
+      allOf:
+        - $ref: '#/components/schemas/CloudEventBase'
+        - type: object
+          properties:
+            type:
+              const: com.fmat.billing-payments.payment-refunded.v1
+            source:
+              const: urn:fmat:service:billing-payments
+            data:
+              $ref: '#/components/schemas/PaymentRefundedData'
