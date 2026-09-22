@@ -1,4 +1,13 @@
 node_modules/
 site/
 public/
-eventcatalog/
+eventcatalog/dist/
+eventcatalog/domains/
+eventcatalog/services/
+eventcatalog/events/
+eventcatalog/commands/
+eventcatalog/queries/
+eventcatalog/schemas/
+eventcatalog/flows/
+eventcatalog/.eventcatalog/
+eventcatalog/.eventcatalog-core/
