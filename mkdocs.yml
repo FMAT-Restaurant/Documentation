@@ -39,4 +39,6 @@ plugins:
   - search
 extra_javascript:
   - javascripts/mermaid.js
+extra_css:
+  - stylesheets/extra.css
 use_directory_urls: true

@@ -28,20 +28,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Obtener el repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar Pages
         id: pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Configurar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
 
       - name: Configurar Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -65,13 +65,15 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Construir documentación Markdown
+        env:
+          NO_MKDOCS_2_WARNING: "1"
         run: python -m mkdocs build --strict --site-dir site/markdown
 
       - name: Ensamblar el artefacto único de Pages
         run: npm run docs:assemble
 
       - name: Publicar el artefacto de Pages
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: public
 
@@ -87,4 +89,4 @@ jobs:
     steps:
       - name: Desplegar en GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

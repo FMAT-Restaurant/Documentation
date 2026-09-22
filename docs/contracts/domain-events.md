@@ -11,7 +11,7 @@ description: Flujos, responsabilidades y reglas de confiabilidad de los contrato
 
 Este documento describe el comportamiento operacional que debe observarse entre servicios. La tabla resume el catálogo publicado y los diagramas muestran los flujos principales, sus respuestas explícitas y las transiciones que permanecen internas a cada contexto.
 
-El contrato machine-readable está disponible en [`FMAT-Restaurant-Events.yml`](FMAT-Restaurant-Events.yml) y su vista navegable se publica mediante [EventCatalog](../../eventcatalog/). Las direcciones de canal, nombres de tipo CloudEvents y formas exactas de los payloads marcadas como `[Propuesta]` siguen abiertas para confirmación del diseño.
+El contrato machine-readable está disponible en [`FMAT-Restaurant-Events.yml`](FMAT-Restaurant-Events.yml) y su vista navegable se publica mediante [EventCatalog](https://fmat-restaurant.github.io/Documentation/eventcatalog/). Las direcciones de canal, nombres de tipo CloudEvents y formas exactas de los payloads marcadas como `[Propuesta]` siguen abiertas para confirmación del diseño.
 
 ## Alcance
 
