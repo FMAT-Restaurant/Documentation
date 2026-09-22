@@ -10,6 +10,9 @@ export default {
   base: process.env.EVENTCATALOG_BASE ?? "/eventcatalog/",
   trailingSlash: false,
   theme: "sapphire",
+  visualiser: {
+    enabled: false,
+  },
   docs: {
     sidebar: {
       showPageHeadings: true,

@@ -5,7 +5,7 @@ info:
   version: 0.1.0
   description: >-
     Contrato compartido propuesto para los mensajes operacionales definidos en
-    output/diagrams/domain-events.md. Cada mensaje usa el modo estructurado de
+    docs/contracts/domain-events.md. Cada mensaje usa el modo estructurado de
     CloudEvents 1.0 y coloca el payload de negocio dentro de data. Los
     addresses, nombres de tipo CloudEvents y formas exactas de los datos son
     propuestas para discusión; el documento de eventos no determina todavía el
@@ -317,6 +317,7 @@ components:
       name: InventoryReservationRequested
       title: Solicitud de reserva de inventario
       summary: Orders & Kitchen solicita la reserva inicial necesaria para una orden.
+      x-eventcatalog-message-type: command
       tags:
         - name: command
       contentType: application/cloudevents+json
@@ -327,6 +328,7 @@ components:
       name: InventoryReservationConfirmed
       title: Reserva de inventario confirmada
       summary: Inventory confirma que la reserva inicial fue realizada correctamente.
+      x-eventcatalog-message-type: event
       tags:
         - name: event
       contentType: application/cloudevents+json
@@ -337,6 +339,7 @@ components:
       name: InventoryReservationRejected
       title: Reserva de inventario rechazada
       summary: Inventory informa que una reserva o ajuste no pudo realizarse.
+      x-eventcatalog-message-type: event
       tags:
         - name: event
       contentType: application/cloudevents+json
@@ -347,6 +350,7 @@ components:
       name: InventoryReservationAdjustmentRequested
       title: Solicitud de ajuste de reserva de inventario
       summary: Orders & Kitchen solicita el ajuste de una reserva debido a cambios en una orden.
+      x-eventcatalog-message-type: command
       tags:
         - name: command
       contentType: application/cloudevents+json
@@ -357,6 +361,7 @@ components:
       name: InventoryReservationAdjusted
       title: Ajuste de reserva de inventario realizado
       summary: Inventory informa que el ajuste solicitado fue realizado correctamente.
+      x-eventcatalog-message-type: event
       tags:
         - name: event
       contentType: application/cloudevents+json
@@ -367,6 +372,7 @@ components:
       name: PreparationStarted
       title: Preparación iniciada
       summary: Orders & Kitchen informa que comenzó la preparación de una orden.
+      x-eventcatalog-message-type: event
       tags:
         - name: event
       contentType: application/cloudevents+json
@@ -377,6 +383,7 @@ components:
       name: OrderCancelled
       title: Orden cancelada
       summary: Orders & Kitchen informa que una orden fue cancelada.
+      x-eventcatalog-message-type: event
       tags:
         - name: event
       contentType: application/cloudevents+json
@@ -387,6 +394,7 @@ components:
       name: OrderReady
       title: Orden lista
       summary: Orders & Kitchen informa que una orden está lista para servirse.
+      x-eventcatalog-message-type: event
       tags:
         - name: event
       contentType: application/cloudevents+json
@@ -397,6 +405,7 @@ components:
       name: OrderServed
       title: Orden servida
       summary: Sala informa que una orden fue servida.
+      x-eventcatalog-message-type: event
       tags:
         - name: event
       contentType: application/cloudevents+json
@@ -407,6 +416,7 @@ components:
       name: AccountClosed
       title: Cuenta cerrada
       summary: Billing & Payments informa que una cuenta quedó completamente saldada y cerrada.
+      x-eventcatalog-message-type: event
       tags:
         - name: event
       contentType: application/cloudevents+json
@@ -417,6 +427,7 @@ components:
       name: PaymentRefunded
       title: Pago reembolsado
       summary: Billing & Payments informa que un pago fue reembolsado.
+      x-eventcatalog-message-type: event
       tags:
         - name: event
       contentType: application/cloudevents+json
