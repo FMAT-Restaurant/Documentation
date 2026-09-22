@@ -231,7 +231,7 @@ const schemaType = (schema) => {
   if (!schema || typeof schema !== "object") return "—";
   if (schema.const !== undefined) return `const ${JSON.stringify(schema.const)}`;
   if (Array.isArray(schema.type)) return schema.type.join(" | ");
-  if (schema.type === "array") return `array<${schemaType(schema.items)}>`;
+  if (schema.type === "array") return `array of ${schemaType(schema.items)}`;
   return schema.type ?? (schema.properties || schema.allOf ? "object" : "—");
 };
 
