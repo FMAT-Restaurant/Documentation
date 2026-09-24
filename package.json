@@ -8,6 +8,7 @@
   "scripts": {
     "lint:asyncapi": "asyncapi validate docs/contracts/FMAT-Restaurant-Events.yml",
     "eventcatalog:generate": "node scripts/generate-eventcatalog.mjs",
+    "eventcatalog:clean": "node scripts/clean-eventcatalog-output.mjs",
     "eventcatalog:build": "npm run build --workspace eventcatalog",
     "docs:assemble": "node scripts/assemble-pages.mjs"
   },

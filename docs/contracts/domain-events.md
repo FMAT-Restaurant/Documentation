@@ -1,6 +1,295 @@
 ---
 title: Eventos de dominio e integración operacional
 description: Flujos, responsabilidades y reglas de confiabilidad de los contratos de FMAT Restaurant.
+eventcatalog:
+  actors:
+    - id: waiter-ui
+      name: Mesero / UI
+      label: crea órdenes y confirma el servicio
+      direction: inbound
+    - id: refund-operator
+      name: Administrador / Caja
+      label: solicita reembolsos
+      direction: inbound
+  flows:
+    - id: order-fulfillment
+      name: Creación de orden hasta finalización
+      summary: Recorrido principal desde la solicitud de una orden hasta su servicio y el resultado del pago/cierre.
+      steps:
+        - id: start
+          title: El mesero solicita una orden
+          actor:
+            name: Mesero / UI
+          next_step: orders-create
+        - id: orders-create
+          title: Orders & Kitchen valida y registra la orden
+          service: { id: orders-kitchen, version: 0.1.0 }
+          next_step: reservation-request
+        - id: reservation-request
+          title: Solicitar la reserva inicial
+          message: { id: InventoryReservationRequested, version: 0.1.0 }
+          next_step: inventory-reserve
+        - id: inventory-reserve
+          title: Inventory valida y reserva los recursos
+          service: { id: inventory, version: 0.1.0 }
+          next_step: reservation-confirmed
+        - id: reservation-confirmed
+          title: Reserva confirmada
+          message: { id: InventoryReservationConfirmed, version: 0.1.0 }
+          next_step: preparation-start
+        - id: preparation-start
+          title: Orders & Kitchen inicia la preparación
+          service: { id: orders-kitchen, version: 0.1.0 }
+          next_step: preparation-started
+        - id: preparation-started
+          title: Notificar el inicio de preparación
+          message: { id: PreparationStarted, version: 0.1.0 }
+          next_step: inventory-consume
+        - id: inventory-consume
+          title: Inventory convierte la reserva en consumo
+          service: { id: inventory, version: 0.1.0 }
+          next_step: order-ready
+        - id: order-ready
+          title: Orders & Kitchen informa que la orden está lista
+          message: { id: OrderReady, version: 0.1.0 }
+          next_step: sala-ready
+        - id: sala-ready
+          title: Sala prepara la orden para servir
+          service: { id: sala, version: 0.1.0 }
+          next_step: waiter-serves
+        - id: waiter-serves
+          title: El mesero confirma que la orden fue servida
+          actor:
+            name: Mesero / UI
+          next_step: order-served
+        - id: order-served
+          title: Notificar que la orden fue servida
+          message: { id: OrderServed, version: 0.1.0 }
+          next_step: billing-account
+        - id: billing-account
+          title: Billing & Payments crea o actualiza la cuenta
+          service: { id: billing-payments, version: 0.1.0 }
+          next_step: payment-request
+        - id: payment-request
+          title: El mesero solicita el pago
+          actor:
+            name: Mesero / UI
+          next_step: payment-provider
+        - id: payment-provider
+          title: Procesar el pago
+          externalSystem:
+            name: Proveedor de pagos (no especificado)
+            summary: El proveedor concreto y el contrato de respuesta no están definidos.
+          next_steps:
+            - id: account-close
+              label: Cuenta completamente saldada
+            - id: balance-pending
+              label: Saldo pendiente
+        - id: account-close
+          title: Billing & Payments cierra la cuenta
+          service: { id: billing-payments, version: 0.1.0 }
+          next_step: account-closed
+        - id: account-closed
+          title: Notificar el cierre de cuenta
+          message: { id: AccountClosed, version: 0.1.0 }
+          next_step: sala-release
+        - id: sala-release
+          title: Sala actualiza el estado y libera la mesa
+          service: { id: sala, version: 0.1.0 }
+        - id: balance-pending
+          title: Pago registrado con saldo pendiente
+          summary: Estado síncrono; no existe un mensaje AsyncAPI para este resultado.
+    - id: order-creation-failure
+      name: Creación de orden con falla
+      summary: Distingue los errores locales de creación y la compensación cuando Inventory rechaza la reserva.
+      steps:
+        - id: start
+          title: El mesero solicita una orden
+          actor:
+            name: Mesero / UI
+          next_step: orders-create
+        - id: orders-create
+          title: Orders & Kitchen valida y persiste la orden
+          service: { id: orders-kitchen, version: 0.1.0 }
+          next_steps:
+            - id: reservation-request
+              label: Orden persistida
+            - id: local-error
+              label: Solicitud inválida o error de persistencia
+        - id: local-error
+          title: Error local sin mensaje publicado
+          summary: La solicitud inválida o el fallo al persistir no tienen un mensaje definido en AsyncAPI.
+        - id: reservation-request
+          title: Solicitar la reserva inicial
+          message: { id: InventoryReservationRequested, version: 0.1.0 }
+          next_step: inventory-reserve
+        - id: inventory-reserve
+          title: Inventory valida la disponibilidad
+          service: { id: inventory, version: 0.1.0 }
+          next_steps:
+            - id: reservation-confirmed
+              label: Inventario disponible
+            - id: reservation-rejected
+              label: Inventario insuficiente
+        - id: reservation-confirmed
+          title: Reserva confirmada
+          message: { id: InventoryReservationConfirmed, version: 0.1.0 }
+        - id: reservation-rejected
+          title: Reserva rechazada
+          message: { id: InventoryReservationRejected, version: 0.1.0 }
+          next_step: orders-cancel
+        - id: orders-cancel
+          title: Orders & Kitchen cancela la orden
+          service: { id: orders-kitchen, version: 0.1.0 }
+          next_step: order-cancelled
+        - id: order-cancelled
+          title: Notificar la cancelación
+          message: { id: OrderCancelled, version: 0.1.0 }
+          next_step: inventory-release
+        - id: inventory-release
+          title: Inventory libera cualquier reserva parcial
+          service: { id: inventory, version: 0.1.0 }
+    - id: order-update
+      name: Actualización de una orden
+      summary: La actualización con impacto en inventario solo se confirma después de que Inventory confirma el ajuste.
+      steps:
+        - id: start
+          title: El mesero solicita un cambio
+          actor:
+            name: Mesero / UI
+          next_step: orders-check
+        - id: orders-check
+          title: Orders & Kitchen valida el estado y los cambios
+          service: { id: orders-kitchen, version: 0.1.0 }
+          next_steps:
+            - id: adjustment-request
+              label: Cambio válido con impacto en inventario
+            - id: local-outcome
+              label: Sin impacto, cambio inválido o preparación iniciada
+        - id: local-outcome
+          title: Resultado local sin mensaje de integración definido
+          summary: Estos resultados permanecen dentro de Orders & Kitchen en el contrato actual.
+        - id: adjustment-request
+          title: Solicitar el ajuste de reserva
+          message: { id: InventoryReservationAdjustmentRequested, version: 0.1.0 }
+          next_step: inventory-adjust
+        - id: inventory-adjust
+          title: Inventory valida el ajuste solicitado
+          service: { id: inventory, version: 0.1.0 }
+          next_steps:
+            - id: adjustment-confirmed
+              label: Ajuste posible
+            - id: adjustment-rejected
+              label: Inventario insuficiente
+        - id: adjustment-confirmed
+          title: Ajuste de reserva confirmado
+          message: { id: InventoryReservationAdjusted, version: 0.1.0 }
+          next_step: orders-confirm
+        - id: adjustment-rejected
+          title: Ajuste de reserva rechazado
+          message: { id: InventoryReservationRejected, version: 0.1.0 }
+          next_step: orders-discard
+        - id: orders-confirm
+          title: Orders & Kitchen confirma el cambio y avanza la versión
+          service: { id: orders-kitchen, version: 0.1.0 }
+        - id: orders-discard
+          title: Orders & Kitchen descarta el cambio pendiente
+          service: { id: orders-kitchen, version: 0.1.0 }
+    - id: payment-failure
+      name: Fallo de pago
+      summary: Modela el pago aprobado o rechazado sin inventar un evento de pago; AccountClosed solo se publica al liquidar la cuenta completa.
+      steps:
+        - id: start
+          title: Mesero o caja solicita el pago
+          actor:
+            name: Mesero / Caja / UI
+          next_step: billing-validate
+        - id: billing-validate
+          title: Billing & Payments valida la cuenta y el monto
+          service: { id: billing-payments, version: 0.1.0 }
+          next_step: provider-process
+        - id: provider-process
+          title: El proveedor procesa el pago
+          externalSystem:
+            name: Proveedor de pagos (no especificado)
+            summary: Proveedor externo; las respuestas no están especificadas como mensajes AsyncAPI.
+          next_steps:
+            - id: payment-approved
+              label: Pago aprobado
+            - id: payment-rejected
+              label: Pago rechazado
+        - id: payment-approved
+          title: Billing & Payments registra el pago
+          service: { id: billing-payments, version: 0.1.0 }
+          next_steps:
+            - id: account-closed
+              label: Cuenta completamente saldada
+            - id: balance-pending
+              label: Queda saldo pendiente
+        - id: account-closed
+          title: Cuenta cerrada
+          message: { id: AccountClosed, version: 0.1.0 }
+          next_step: sala-update
+        - id: sala-update
+          title: Sala libera la mesa
+          service: { id: sala, version: 0.1.0 }
+        - id: balance-pending
+          title: Pago exitoso, saldo pendiente
+          summary: Respuesta síncrona; no se publica AccountClosed.
+        - id: payment-rejected
+          title: Billing & Payments registra el intento fallido
+          service: { id: billing-payments, version: 0.1.0 }
+          next_step: rejected-response
+        - id: rejected-response
+          title: Pago rechazado sin evento de cierre
+          summary: Respuesta síncrona; no se publica AccountClosed.
+    - id: payment-refund
+      name: Reembolso
+      summary: Solo el reembolso confirmado por el proveedor genera PaymentRefunded.
+      steps:
+        - id: start
+          title: Administrador o caja solicita un reembolso
+          actor:
+            name: Administrador / Caja
+          next_step: billing-validate
+        - id: billing-validate
+          title: Billing & Payments busca el pago y valida el reembolso
+          service: { id: billing-payments, version: 0.1.0 }
+          next_steps:
+            - id: refund-denied
+              label: Reembolso no permitido
+            - id: provider-request
+              label: Reembolso permitido
+        - id: refund-denied
+          title: Reembolso rechazado localmente
+          summary: No se solicita al proveedor ni se publica un evento.
+        - id: provider-request
+          title: Solicitar el reembolso
+          externalSystem:
+            name: Proveedor de pagos (no especificado)
+            summary: El proveedor concreto y su contrato de respuesta no están definidos.
+          next_steps:
+            - id: provider-rejected
+              label: El proveedor rechaza el reembolso
+            - id: provider-approved
+              label: El proveedor confirma el reembolso
+        - id: provider-rejected
+          title: Billing & Payments registra el intento fallido
+          service: { id: billing-payments, version: 0.1.0 }
+          next_step: refund-failed
+        - id: refund-failed
+          title: Reembolso no realizado; no se publica PaymentRefunded
+        - id: provider-approved
+          title: Billing & Payments registra el reembolso confirmado
+          service: { id: billing-payments, version: 0.1.0 }
+          next_step: payment-refunded
+        - id: payment-refunded
+          title: Notificar el reembolso confirmado
+          message: { id: PaymentRefunded, version: 0.1.0 }
+          next_step: sala-update
+        - id: sala-update
+          title: Sala actualiza el estado visible si aplica
+          service: { id: sala, version: 0.1.0 }
 ---
 
 # Eventos de dominio e integración operacional
@@ -12,6 +301,8 @@ description: Flujos, responsabilidades y reglas de confiabilidad de los contrato
 Este documento describe el comportamiento operacional que debe observarse entre servicios. La tabla resume el catálogo publicado y los diagramas muestran los flujos principales, sus respuestas explícitas y las transiciones que permanecen internas a cada contexto.
 
 El contrato machine-readable está disponible en [`FMAT-Restaurant-Events.yml`](FMAT-Restaurant-Events.yml) y su vista navegable se publica mediante [EventCatalog](https://fmat-restaurant.github.io/Documentation/eventcatalog/). Las direcciones de canal, nombres de tipo CloudEvents y formas exactas de los payloads marcadas como `[Propuesta]` siguen abiertas para confirmación del diseño.
+
+Los cinco flujos estructurados del frontmatter alimentan los diagramas de EventCatalog. Esta separación mantiene el texto y los diagramas Mermaid legibles en GitHub Pages, y permite que el catálogo relacione cada paso con su servicio o mensaje sin convertir interacciones internas en eventos publicados.
 
 ## Alcance
 
@@ -32,6 +323,16 @@ Los mensajes publicados mediante el broker representan contratos entre servicios
 | `OrderServed`                             | Evento  | Informar que una orden fue servida                                                                | Sala               | Billing & Payments |
 | `AccountClosed`                           | Evento  | Informar que una cuenta quedó completamente saldada y cerrada                                     | Billing & Payments | Sala               |
 | `PaymentRefunded`                         | Evento  | Informar que un pago fue reembolsado                                                              | Billing & Payments | Sala               |
+
+## Flujos publicados en EventCatalog
+
+| Flujo | Alcance |
+| --- | --- |
+| [Creación de orden hasta finalización](https://fmat-restaurant.github.io/Documentation/eventcatalog/docs/flows/order-fulfillment/0.1.0/) | Reserva, preparación, servicio, pago y cierre si la cuenta queda saldada. |
+| [Creación de orden con falla](https://fmat-restaurant.github.io/Documentation/eventcatalog/docs/flows/order-creation-failure/0.1.0/) | Errores locales, rechazo de reserva y cancelación compensatoria. |
+| [Actualización de una orden](https://fmat-restaurant.github.io/Documentation/eventcatalog/docs/flows/order-update/0.1.0/) | Ajuste de inventario antes de confirmar o descartar el cambio. |
+| [Fallo de pago](https://fmat-restaurant.github.io/Documentation/eventcatalog/docs/flows/payment-failure/0.1.0/) | Respuestas del proveedor y condición explícita para publicar `AccountClosed`. |
+| [Reembolso](https://fmat-restaurant.github.io/Documentation/eventcatalog/docs/flows/payment-refund/0.1.0/) | Validación, confirmación externa y publicación de `PaymentRefunded`. |
 
 ---
 

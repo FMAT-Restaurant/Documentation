@@ -55,6 +55,9 @@ jobs:
       - name: Generar recursos de EventCatalog desde AsyncAPI
         run: npm run eventcatalog:generate
 
+      - name: Limpiar compilación previa de EventCatalog
+        run: npm run eventcatalog:clean
+
       - name: Construir EventCatalog estático
         run: npm run eventcatalog:build
         env:

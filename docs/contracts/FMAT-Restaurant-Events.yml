@@ -15,6 +15,64 @@ info:
     consumidores externos.
 defaultContentType: application/cloudevents+json
 
+# Metadatos de catálogo para proyectar el contrato en EventCatalog. Las
+# operaciones siguen siendo AsyncAPI 3; esta extensión declara su propiedad y
+# la estructura de sistemas/servicios sin inferirla de los nombres de operación.
+x-eventcatalog:
+  systems:
+    fmat-restaurant-operations:
+      name: Operación FMAT Restaurant
+      summary: Sistema interno que coordina órdenes, inventario, sala y pagos.
+      scope: internal
+      relationships:
+        - id: payment-provider
+          version: 0.1.0
+          label: procesa pagos y reembolsos con
+    payment-provider:
+      name: Proveedor de pagos (no especificado)
+      summary: Sistema externo citado por los flujos de pago y reembolso; el proveedor concreto no está definido.
+      scope: external
+  services:
+    orders-kitchen:
+      name: Orders & Kitchen
+      source: urn:fmat:service:orders-kitchen
+      summary: Gestiona las órdenes, la preparación y los eventos que habilitan el flujo operativo.
+    inventory:
+      name: Inventory
+      source: urn:fmat:service:inventory
+      summary: Administra reservas, ajustes, consumo y liberación de inventario.
+    sala:
+      name: Sala
+      source: urn:fmat:service:sala
+      summary: Coordina el servicio en mesa y comunica cuándo una orden fue servida.
+    billing-payments:
+      name: Billing & Payments
+      source: urn:fmat:service:billing-payments
+      summary: Gestiona cuentas, cobros, cierres y reembolsos.
+  operationServices:
+    ordersKitchenSendsInventoryReservationRequested: orders-kitchen
+    inventoryReceivesInventoryReservationRequested: inventory
+    inventorySendsInventoryReservationConfirmed: inventory
+    ordersKitchenReceivesInventoryReservationConfirmed: orders-kitchen
+    inventorySendsInventoryReservationRejected: inventory
+    ordersKitchenReceivesInventoryReservationRejected: orders-kitchen
+    ordersKitchenSendsInventoryReservationAdjustmentRequested: orders-kitchen
+    inventoryReceivesInventoryReservationAdjustmentRequested: inventory
+    inventorySendsInventoryReservationAdjusted: inventory
+    ordersKitchenReceivesInventoryReservationAdjusted: orders-kitchen
+    ordersKitchenSendsPreparationStarted: orders-kitchen
+    inventoryReceivesPreparationStarted: inventory
+    ordersKitchenSendsOrderCancelled: orders-kitchen
+    inventoryReceivesOrderCancelled: inventory
+    ordersKitchenSendsOrderReady: orders-kitchen
+    salaReceivesOrderReady: sala
+    salaSendsOrderServed: sala
+    billingPaymentsReceivesOrderServed: billing-payments
+    billingPaymentsSendsAccountClosed: billing-payments
+    salaReceivesAccountClosed: sala
+    billingPaymentsSendsPaymentRefunded: billing-payments
+    salaReceivesPaymentRefunded: sala
+
 channels:
   inventoryReservationRequested:
     address: fmat/orders/inventory-reservation-requested/v1

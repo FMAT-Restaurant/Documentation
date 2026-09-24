@@ -3,6 +3,7 @@ site/
 public/
 eventcatalog/dist/
 eventcatalog/domains/
+eventcatalog/systems/
 eventcatalog/services/
 eventcatalog/events/
 eventcatalog/commands/

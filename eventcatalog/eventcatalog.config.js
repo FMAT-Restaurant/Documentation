@@ -11,7 +11,7 @@ export default {
   trailingSlash: false,
   theme: "sapphire",
   visualiser: {
-    enabled: false,
+    enabled: true,
   },
   docs: {
     sidebar: {
