@@ -223,6 +223,7 @@ const cloudEventType = (schema) => {
 };
 
 const frontmatter = (data) => `---\n${YAML.stringify(data).trimEnd()}\n---\n`;
+const resourceLink = (type, id, label) => `<ResourceLink id="${id}" type="${type}">${label}</ResourceLink>`;
 const writeResource = async (directory, metadata, body) => {
   await mkdir(directory, { recursive: true });
   await writeFile(path.join(directory, "index.mdx"), `${frontmatter(metadata)}\n${body.trim()}\n`, "utf8");
@@ -236,7 +237,7 @@ const serviceMessageRows = (service) => messages
       ? "Productor y consumidor"
       : message.producers.includes(service.id) ? "Productor" : "Consumidor";
     const messageType = message.type === "command" ? "command" : "event";
-    return `| [[${messageType}|${message.id}]] | ${role} | ${message.channelIds.map((id) => `\`${channelById.get(id).address}\``).join(", ")} |`;
+    return `| ${resourceLink(messageType, message.id, message.name)} | ${role} | ${message.channelIds.map((id) => `\`${channelById.get(id).address}\``).join(", ")} |`;
   });
 
 const buildServiceSpec = (service) => {
@@ -274,7 +275,7 @@ const writeDomain = async () => {
     "",
     "| Sistema | Alcance |",
     "| --- | --- |",
-    ...systems.map((system) => `| [[system|${system.id}]] | ${system.scope === "external" ? "Externo" : "Interno"} |`),
+    ...systems.map((system) => `| ${resourceLink("system", system.id, system.name)} | ${system.scope === "external" ? "Externo" : "Interno"} |`),
     "",
     "## Contrato AsyncAPI canónico",
     "",
@@ -284,7 +285,7 @@ const writeDomain = async () => {
     "",
     "| Flujo | Propósito |",
     "| --- | --- |",
-    ...flows.map((flow) => `| [[flow|${flow.id}]] | ${flow.summary} |`),
+    ...flows.map((flow) => `| ${resourceLink("flow", flow.id, flow.name)} | ${flow.summary} |`),
     "",
     `Los pasos estructurados y los diagramas Mermaid se mantienen en [domain-events.md](${publicDomainEventsUrl}). Las decisiones abiertas del contrato conservan ese estado explícito.`,
   ].join("\n"));
@@ -373,7 +374,7 @@ const writeSystems = async () => {
         "",
         "| Servicio | Responsabilidad |",
         "| --- | --- |",
-        ...services.map((service) => `| [[service|${service.id}]] | ${service.summary} |`),
+        ...services.map((service) => `| ${resourceLink("service", service.id, service.name)} | ${service.summary} |`),
         "",
         "## Flujos de negocio",
         "",
@@ -476,7 +477,7 @@ const writeChannels = async () => {
       "",
       "| Mensaje | Tipo |",
       "| --- | --- |",
-      ...channelMessages.map((message) => `| [[${message.type === "command" ? "command" : "event"}|${message.id}]] | ${message.type} |`),
+      ...channelMessages.map((message) => `| ${resourceLink(message.type === "command" ? "command" : "event", message.id, message.name)} | ${message.type} |`),
       "",
       "El address y el transporte se conservan como propuesta porque el contrato fuente todavía no fija broker, protocolo, tópicos ni garantías de entrega.",
     ].join("\n"));
